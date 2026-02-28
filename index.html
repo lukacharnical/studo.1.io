@@ -53,6 +53,7 @@ th { background:#222; }
 <th>Nom</th>
 <th>Date</th>
 <th>Statut</th>
+<th>Action</th>
 </tr>
 </table>
 
@@ -68,9 +69,9 @@ th { background:#222; }
 let currentMateriel = "";
 let logs = JSON.parse(localStorage.getItem('logs')) || [];
 
+/* 🔥 RENOMMAGE QR */
 const materielMap = {
-  "S/N:441237600455": "SSD",
-  "]C1%21E82555256589015": "CLAVIER MIDI"
+  "S/N:441237600455": "SSD"
 };
 
 function onScanSuccess(decodedText) {
@@ -82,7 +83,25 @@ function onScanSuccess(decodedText) {
 
 new Html5QrcodeScanner("reader",{fps:10,qrbox:250}).render(onScanSuccess);
 
+/* =========================
+   AJOUT LIGNE
+========================= */
+function addRow(l, index){
+  const table = document.getElementById("tableau");
+  const row = table.insertRow();
 
+  row.insertCell(0).innerText = l.materiel;
+  row.insertCell(1).innerText = l.nom;
+  row.insertCell(2).innerText = l.date;
+  row.insertCell(3).innerText = l.statut;
+
+  const deleteCell = row.insertCell(4);
+  const btn = document.createElement("button");
+  btn.innerText = "🗑";
+  btn.className = "deleteBtn";
+  btn.onclick = function(){ supprimer(index); };
+  deleteCell.appendChild(btn);
+}
 
 /* =========================
    ENREGISTRER
@@ -126,7 +145,8 @@ function sauvegarder(){
 
 function afficher(){
   const table = document.getElementById("tableau");
-  
+  table.innerHTML =
+    "<tr><th>Matériel</th><th>Nom</th><th>Date</th><th>Statut</th><th>Action</th></tr>";
 
   logs.forEach((l,i) => addRow(l,i));
 
