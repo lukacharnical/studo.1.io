@@ -68,28 +68,10 @@ th { background:#222; }
 let currentMateriel = "";
 let logs = JSON.parse(localStorage.getItem('logs')) || [];
 
-let materielMap = {};
-
-/* =========================
-   CHARGEMENT DU FICHIER TXT
-========================= */
-fetch("materiel.txt")
-  .then(response => response.text())
-  .then(data => {
-    const lignes = data.split("\n");
-
-    lignes.forEach(ligne => {
-      if(ligne.trim() === "") return;
-
-      const [code, nom] = ligne.split("=");
-      materielMap[code.trim()] = nom.trim();
-    });
-
-    console.log("Matériel chargé :", materielMap);
-  })
-  .catch(error => {
-    console.error("Erreur chargement fichier TXT :", error);
-  });
+const materielMap = {
+  "S/N:441237600455": "SSD",
+  "]C1%21E82555256589015": "CLAVIER MIDI"
+};
 
 function onScanSuccess(decodedText) {
   decodedText = decodedText.trim();
