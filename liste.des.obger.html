@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <title>Inventaire Studio</title>
-
 <style>
 body { background:#111; color:white; font-family:Arial; text-align:center; padding:20px; }
 nav { background:#222; padding:10px; }
@@ -17,7 +16,6 @@ th { background:#222; }
 h2 { margin-top:40px; }
 </style>
 </head>
-
 <body>
 
 <nav>
@@ -40,76 +38,49 @@ h2 { margin-top:40px; }
 </table>
 
 <script>
+// 🔥 LISTE DE TOUS TES OBJETS (en dur)
+const inventaire = [
+  "SSD",
+  "HDMI",
+  "CLAVIER MIDI",
+];
 
-let inventaire = [];
 let logs = JSON.parse(localStorage.getItem('logs')) || [];
 let etatMateriel = {};
 
-/* Analyse des logs */
+// Analyse des logs pour connaître le dernier statut
 logs.forEach(log => {
   etatMateriel[log.materiel] = log;
 });
 
-/* =========================
-   CHARGEMENT INVENTAIRE.TXT
-========================= */
-fetch("inventaire.txt")
-  .then(response => {
-    if(!response.ok){
-      throw new Error("Fichier inventaire.txt introuvable !");
-    }
-    return response.text();
-  })
-  .then(data => {
+let total = inventaire.length;
+let dispoCount = 0;
+let pretCount = 0;
 
-    inventaire = data.split("\n")
-                     .map(item => item.trim())
-                     .filter(item => item !== "");
+const table = document.getElementById("tableau");
 
-    afficherInventaire();
+// Affichage
+inventaire.forEach(item => {
+  const row = table.insertRow();
+  row.insertCell(0).innerText = item;
 
-  })
-  .catch(error => {
-    alert("Erreur : " + error.message);
-  });
+  if(etatMateriel[item] && etatMateriel[item].statut === "PRÊT"){
+    row.insertCell(1).innerHTML = "<span class='pret'>PRÊTÉ</span>";
+    row.insertCell(2).innerText = etatMateriel[item].nom;
+    row.insertCell(3).innerText = etatMateriel[item].date;
+    pretCount++;
+  } else {
+    row.insertCell(1).innerHTML = "<span class='dispo'>DISPONIBLE</span>";
+    row.insertCell(2).innerText = "-";
+    row.insertCell(3).innerText = "-";
+    dispoCount++;
+  }
+});
 
-
-function afficherInventaire(){
-
-  let total = inventaire.length;
-  let dispoCount = 0;
-  let pretCount = 0;
-
-  const table = document.getElementById("tableau");
-
-  inventaire.forEach(item => {
-
-    const row = table.insertRow();
-    row.insertCell(0).innerText = item;
-
-    if(etatMateriel[item] && etatMateriel[item].statut === "PRÊT"){
-
-      row.insertCell(1).innerHTML = "<span class='pret'>PRÊTÉ</span>";
-      row.insertCell(2).innerText = etatMateriel[item].nom;
-      row.insertCell(3).innerText = etatMateriel[item].date;
-      pretCount++;
-
-    } else {
-
-      row.insertCell(1).innerHTML = "<span class='dispo'>DISPONIBLE</span>";
-      row.insertCell(2).innerText = "-";
-      row.insertCell(3).innerText = "-";
-      dispoCount++;
-    }
-
-  });
-
-  document.getElementById("resume").innerHTML =
-    "Total : " + total +
-    " | 🟢 Disponibles : " + dispoCount +
-    " | 🔴 Prêtés : " + pretCount;
-}
-
+document.getElementById("resume").innerHTML =
+  "Total : " + total +
+  " | 🟢 Disponibles : " + dispoCount +
+  " | 🔴 Prêtés : " + pretCount;
 </script>
 
 </body>
