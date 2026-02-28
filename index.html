@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Studio Manager - Renommage Auto</title>
+<script src="https://unpkg.com/html5-qrcode"></script>
+
+<style>
+body { background:#111; color:white; font-family:Arial; margin:0; padding:0; }
+nav { background:#222; padding:10px; text-align:center; }
+nav a { color:white; margin:0 15px; text-decoration:none; font-weight:bold; }
+nav a:hover { color:#00c853; }
+.container { padding:20px; text-align:center; }
+#reader { width:300px; margin:auto; }
+input, button { padding:10px; margin:10px; }
+button { background:#00c853; border:none; color:white; cursor:pointer; }
+button:hover { opacity:0.8; }
+table { margin:auto; margin-top:20px; border-collapse:collapse; width:95%; }
+td, th { border:1px solid #444; padding:8px; text-align:center; }
+th { background:#222; }
+.stats { margin-top:20px; font-weight:bold; }
+.deleteBtn { background:#c62828; }
+</style>
+</head>
+
+<body>
+
+<nav>
+  <a href="index.html">Gestion Matériel</a>
+  <a href="liste.des.obger.html">Liste des objets</a>
+</nav>
+
+<div class="container">
+
+<h1>🎛 Studio Manager</h1>
+
+<div id="reader"></div>
+
+<h3 id="materiel">Matériel :</h3>
+<input type="text" id="nom" placeholder="Nom">
+<br>
+<button onclick="enregistrer('PRÊT')">PRÊT</button>
+<button onclick="enregistrer('RETOUR')">RETOUR</button>
+
+<div class="stats">
+  📊 PRÊT : <span id="pretCount">0</span> |
+  RETOUR : <span id="retourCount">0</span>
+</div>
+
+<table id="tableau">
+<tr>
+<th>Matériel</th>
+<th>Nom</th>
+<th>Date</th>
+<th>Statut</th>
+</tr>
+</table>
+
+<br>
+<button onclick="exporterCSV()">📤 Exporter</button>
+<input type="file" id="importFile" accept=".csv" style="display:none" onchange="importerCSV(event)">
+<button onclick="document.getElementById('importFile').click()">📥 Importer</button>
+
+</div>
+
+<script>
+
+let currentMateriel = "";
+let logs = JSON.parse(localStorage.getItem('logs')) || [];
+
+let materielMap = {};
+
+/* =========================
+   CHARGEMENT DU FICHIER TXT
+========================= */
+fetch("materiel.txt")
+  .then(response => response.text())
+  .then(data => {
+    const lignes = data.split("\n");
+
+    lignes.forEach(ligne => {
+      if(ligne.trim() === "") return;
+
+      const [code, nom] = ligne.split("=");
+      materielMap[code.trim()] = nom.trim();
+    });
+
+    console.log("Matériel chargé :", materielMap);
+  })
+  .catch(error => {
+    console.error("Erreur chargement fichier TXT :", error);
+  });
+
+function onScanSuccess(decodedText) {
+  decodedText = decodedText.trim();
+  currentMateriel = materielMap[decodedText] || decodedText;
+  document.getElementById("materiel").innerText =
+    "Matériel : " + currentMateriel;
+}
+
+new Html5QrcodeScanner("reader",{fps:10,qrbox:250}).render(onScanSuccess);
+
+
+
+/* =========================
+   ENREGISTRER
+========================= */
+function enregistrer(statut){
+  if(!currentMateriel){
+    alert("Scanne un QR code !");
+    return;
+  }
+
+  const nom = document.getElementById("nom").value;
+  if(!nom){
+    alert("Indique ton nom !");
+    return;
+  }
+
+  const date = new Date().toLocaleString();
+  const log = {materiel: currentMateriel, nom, date, statut};
+
+  logs.push(log);
+  sauvegarder();
+  afficher();
+  document.getElementById("nom").value="";
+}
+
+/* =========================
+   SUPPRIMER
+========================= */
+function supprimer(index){
+  logs.splice(index,1);
+  sauvegarder();
+  afficher();
+}
+
+/* =========================
+   SAUVEGARDE + REFRESH
+========================= */
+function sauvegarder(){
+  localStorage.setItem('logs', JSON.stringify(logs));
+}
+
+function afficher(){
+  const table = document.getElementById("tableau");
+  
+
+  logs.forEach((l,i) => addRow(l,i));
+
+  // Stats
+  let pret = logs.filter(l => l.statut === "PRÊT").length;
+  let retour = logs.filter(l => l.statut === "RETOUR").length;
+
+  document.getElementById("pretCount").innerText = pret;
+  document.getElementById("retourCount").innerText = retour;
+}
+
+/* =========================
+   EXPORT CSV
+========================= */
+function exporterCSV(){
+  if(logs.length === 0){
+    alert("Aucune donnée !");
+    return;
+  }
+
+  let csv = "Materiel,Nom,Date,Statut\n";
+
+  logs.forEach(l => {
+    csv += `"${l.materiel}","${l.nom}","${l.date}","${l.statut}"\n`;
+  });
+
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = window.URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "studio_logs.csv";
+  a.click();
+
+  window.URL.revokeObjectURL(url);
+}
+
+/* =========================
+   IMPORT CSV
+========================= */
+function importerCSV(event){
+  const file = event.target.files[0];
+  if(!file) return;
+
+  const reader = new FileReader();
+
+  reader.onload = function(e){
+    const lignes = e.target.result.split("\n");
+    lignes.shift();
+
+    logs = [];
+
+    lignes.forEach(ligne => {
+      if(ligne.trim() === "") return;
+
+      const colonnes = ligne.split(/","/).map(c => c.replace(/"/g,""));
+
+      logs.push({
+        materiel: colonnes[0],
+        nom: colonnes[1],
+        date: colonnes[2],
+        statut: colonnes[3]
+      });
+    });
+
+    sauvegarder();
+    afficher();
+    alert("Import réussi !");
+  };
+
+  reader.readAsText(file);
+}
+
+/* LANCEMENT */
+afficher();
+
+</script>
+
+</body>
+</html>

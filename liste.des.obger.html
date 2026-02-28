@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Inventaire Studio</title>
+
+<style>
+body { background:#111; color:white; font-family:Arial; text-align:center; padding:20px; }
+nav { background:#222; padding:10px; }
+nav a { color:white; margin:0 15px; text-decoration:none; font-weight:bold; }
+nav a:hover { color:#00c853; }
+table { margin:auto; margin-top:20px; border-collapse:collapse; width:90%; }
+td, th { border:1px solid #444; padding:10px; text-align:center; }
+th { background:#222; }
+.dispo { color:#00c853; font-weight:bold; }
+.pret { color:#ff5252; font-weight:bold; }
+h2 { margin-top:40px; }
+</style>
+</head>
+
+<body>
+
+<nav>
+  <a href="index.html">Gestion Matériel</a>
+  <a href="liste.des.obger.html">Liste des objets</a>
+</nav>
+
+<h1>📦 Inventaire du Studio</h1>
+
+<h2>📊 Résumé</h2>
+<p id="resume"></p>
+
+<table id="tableau">
+<tr>
+<th>Matériel</th>
+<th>Statut</th>
+<th>Dernier Emprunteur</th>
+<th>Date</th>
+</tr>
+</table>
+
+<script>
+
+let inventaire = [];
+let logs = JSON.parse(localStorage.getItem('logs')) || [];
+let etatMateriel = {};
+
+/* Analyse des logs */
+logs.forEach(log => {
+  etatMateriel[log.materiel] = log;
+});
+
+/* =========================
+   CHARGEMENT INVENTAIRE.TXT
+========================= */
+fetch("inventaire.txt")
+  .then(response => {
+    if(!response.ok){
+      throw new Error("Fichier inventaire.txt introuvable !");
+    }
+    return response.text();
+  })
+  .then(data => {
+
+    inventaire = data.split("\n")
+                     .map(item => item.trim())
+                     .filter(item => item !== "");
+
+    afficherInventaire();
+
+  })
+  .catch(error => {
+    alert("Erreur : " + error.message);
+  });
+
+
+function afficherInventaire(){
+
+  let total = inventaire.length;
+  let dispoCount = 0;
+  let pretCount = 0;
+
+  const table = document.getElementById("tableau");
+
+  inventaire.forEach(item => {
+
+    const row = table.insertRow();
+    row.insertCell(0).innerText = item;
+
+    if(etatMateriel[item] && etatMateriel[item].statut === "PRÊT"){
+
+      row.insertCell(1).innerHTML = "<span class='pret'>PRÊTÉ</span>";
+      row.insertCell(2).innerText = etatMateriel[item].nom;
+      row.insertCell(3).innerText = etatMateriel[item].date;
+      pretCount++;
+
+    } else {
+
+      row.insertCell(1).innerHTML = "<span class='dispo'>DISPONIBLE</span>";
+      row.insertCell(2).innerText = "-";
+      row.insertCell(3).innerText = "-";
+      dispoCount++;
+    }
+
+  });
+
+  document.getElementById("resume").innerHTML =
+    "Total : " + total +
+    " | 🟢 Disponibles : " + dispoCount +
+    " | 🔴 Prêtés : " + pretCount;
+}
+
+</script>
+
+</body>
+</html>
